@@ -37,39 +37,52 @@ void secp256k1_fe_from_storage(secp256k1_fe *r, __constant const secp256k1_fe_st
     r->n[9] = a->n[7] >> 10;
 }
 
+ulong mul(uint x, uint y) {
+  const uint xH = x >> 16, xL = x & 0xFFFFu;
+  const uint yH = y >> 16, yL = y & 0xFFFFu;
+
+  ulong z = xH * yH;
+  z <<= 16;
+  z += xH * yL;
+  z += xL * yH;
+  z <<= 16;
+  z += xL * yL;
+  return z;
+}
+
 void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t *a, const uint32_t * b) {
     uint64_t c, d;
     uint64_t u0, u1, u2, u3, u4, u5, u6, u7, u8;
     uint32_t t9, t1, t0, t2, t3, t4, t5, t6, t7;
     const uint32_t M = 0x3FFFFFFUL, R0 = 0x3D10UL, R1 = 0x400UL;
-    d  = (uint64_t)a[0] * b[9]
-       + (uint64_t)a[1] * b[8]
-       + (uint64_t)a[2] * b[7]
-       + (uint64_t)a[3] * b[6]
-       + (uint64_t)a[4] * b[5]
-       + (uint64_t)a[5] * b[4]
-       + (uint64_t)a[6] * b[3]
-       + (uint64_t)a[7] * b[2]
-       + (uint64_t)a[8] * b[1]
-       + (uint64_t)a[9] * b[0];
+    d  = mul(a[0], b[9])
+       + mul(a[1], b[8])
+       + mul(a[2], b[7])
+       + mul(a[3], b[6])
+       + mul(a[4], b[5])
+       + mul(a[5], b[4])
+       + mul(a[6], b[3])
+       + mul(a[7], b[2])
+       + mul(a[8], b[1])
+       + mul(a[9], b[0]);
     /* VERIFY_BITS(d, 64); */
     /* [d 0 0 0 0 0 0 0 0 0] = [p9 0 0 0 0 0 0 0 0 0] */
     t9 = d & M; d >>= 26;
 
     /* [d t9 0 0 0 0 0 0 0 0 0] = [p9 0 0 0 0 0 0 0 0 0] */
 
-    c  = (uint64_t)a[0] * b[0];
+    c  = mul(a[0], b[0]);
 
     /* [d t9 0 0 0 0 0 0 0 0 c] = [p9 0 0 0 0 0 0 0 0 p0] */
-    d += (uint64_t)a[1] * b[9]
-       + (uint64_t)a[2] * b[8]
-       + (uint64_t)a[3] * b[7]
-       + (uint64_t)a[4] * b[6]
-       + (uint64_t)a[5] * b[5]
-       + (uint64_t)a[6] * b[4]
-       + (uint64_t)a[7] * b[3]
-       + (uint64_t)a[8] * b[2]
-       + (uint64_t)a[9] * b[1];
+    d += mul(a[1], b[9])
+       + mul(a[2], b[8])
+       + mul(a[3], b[7])
+       + mul(a[4], b[6])
+       + mul(a[5], b[5])
+       + mul(a[6], b[4])
+       + mul(a[7], b[3])
+       + mul(a[8], b[2])
+       + mul(a[9], b[1]);
 
     /* [d t9 0 0 0 0 0 0 0 0 c] = [p10 p9 0 0 0 0 0 0 0 0 p0] */
     u0 = d & M; d >>= 26; c += u0 * R0;
@@ -80,18 +93,18 @@ void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t *a, const uint32_t * b) 
     /* [d u0 t9 0 0 0 0 0 0 0 c-u0*R1 t0-u0*R0] = [p10 p9 0 0 0 0 0 0 0 0 p0] */
     /* [d 0 t9 0 0 0 0 0 0 0 c t0] = [p10 p9 0 0 0 0 0 0 0 0 p0] */
 
-    c += (uint64_t)a[0] * b[1]
-       + (uint64_t)a[1] * b[0];
+    c += mul(a[0], b[1])
+       + mul(a[1], b[0]);
 
     /* [d 0 t9 0 0 0 0 0 0 0 c t0] = [p10 p9 0 0 0 0 0 0 0 p1 p0] */
-    d += (uint64_t)a[2] * b[9]
-       + (uint64_t)a[3] * b[8]
-       + (uint64_t)a[4] * b[7]
-       + (uint64_t)a[5] * b[6]
-       + (uint64_t)a[6] * b[5]
-       + (uint64_t)a[7] * b[4]
-       + (uint64_t)a[8] * b[3]
-       + (uint64_t)a[9] * b[2];
+    d += mul(a[2], b[9])
+       + mul(a[3], b[8])
+       + mul(a[4], b[7])
+       + mul(a[5], b[6])
+       + mul(a[6], b[5])
+       + mul(a[7], b[4])
+       + mul(a[8], b[3])
+       + mul(a[9], b[2]);
 
     /* [d 0 t9 0 0 0 0 0 0 0 c t0] = [p11 p10 p9 0 0 0 0 0 0 0 p1 p0] */
     u1 = d & M; d >>= 26; c += u1 * R0;
@@ -102,18 +115,18 @@ void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t *a, const uint32_t * b) 
     /* [d u1 0 t9 0 0 0 0 0 0 c-u1*R1 t1-u1*R0 t0] = [p11 p10 p9 0 0 0 0 0 0 0 p1 p0] */
     /* [d 0 0 t9 0 0 0 0 0 0 c t1 t0] = [p11 p10 p9 0 0 0 0 0 0 0 p1 p0] */
 
-    c += (uint64_t)a[0] * b[2]
-       + (uint64_t)a[1] * b[1]
-       + (uint64_t)a[2] * b[0];
+    c += mul(a[0], b[2])
+       + mul(a[1], b[1])
+       + mul(a[2], b[0]);
 
     /* [d 0 0 t9 0 0 0 0 0 0 c t1 t0] = [p11 p10 p9 0 0 0 0 0 0 p2 p1 p0] */
-    d += (uint64_t)a[3] * b[9]
-       + (uint64_t)a[4] * b[8]
-       + (uint64_t)a[5] * b[7]
-       + (uint64_t)a[6] * b[6]
-       + (uint64_t)a[7] * b[5]
-       + (uint64_t)a[8] * b[4]
-       + (uint64_t)a[9] * b[3];
+    d += mul(a[3], b[9])
+       + mul(a[4], b[8])
+       + mul(a[5], b[7])
+       + mul(a[6], b[6])
+       + mul(a[7], b[5])
+       + mul(a[8], b[4])
+       + mul(a[9], b[3]);
 
     /* [d 0 0 t9 0 0 0 0 0 0 c t1 t0] = [p12 p11 p10 p9 0 0 0 0 0 0 p2 p1 p0] */
     u2 = d & M; d >>= 26; c += u2 * R0;
@@ -122,35 +135,35 @@ void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t *a, const uint32_t * b) 
 
     /* [d u2 0 0 t9 0 0 0 0 0 c-u2*R1 t2-u2*R0 t1 t0] = [p12 p11 p10 p9 0 0 0 0 0 0 p2 p1 p0] */
     /* [d 0 0 0 t9 0 0 0 0 0 c t2 t1 t0] = [p12 p11 p10 p9 0 0 0 0 0 0 p2 p1 p0] */
-    c += (uint64_t)a[0] * b[3]
-       + (uint64_t)a[1] * b[2]
-       + (uint64_t)a[2] * b[1]
-       + (uint64_t)a[3] * b[0];
+    c += mul(a[0], b[3])
+       + mul(a[1], b[2])
+       + mul(a[2], b[1])
+       + mul(a[3], b[0]);
 
-    d += (uint64_t)a[4] * b[9]
-       + (uint64_t)a[5] * b[8]
-       + (uint64_t)a[6] * b[7]
-       + (uint64_t)a[7] * b[6]
-       + (uint64_t)a[8] * b[5]
-       + (uint64_t)a[9] * b[4];
+    d += mul(a[4], b[9])
+       + mul(a[5], b[8])
+       + mul(a[6], b[7])
+       + mul(a[7], b[6])
+       + mul(a[8], b[5])
+       + mul(a[9], b[4]);
     u3 = d & M; d >>= 26; c += u3 * R0;
 
     /* VERIFY_BITS(c, 64); */
     /* [d u3 0 0 0 t9 0 0 0 0 0 c-u3*R0 t2 t1 t0] = [p13 p12 p11 p10 p9 0 0 0 0 0 p3 p2 p1 p0] */
     t3 = c & M; c >>= 26; c += u3 * R1;
 
-    c += (uint64_t)a[0] * b[4]
-       + (uint64_t)a[1] * b[3]
-       + (uint64_t)a[2] * b[2]
-       + (uint64_t)a[3] * b[1]
-       + (uint64_t)a[4] * b[0];
+    c += mul(a[0], b[4])
+       + mul(a[1], b[3])
+       + mul(a[2], b[2])
+       + mul(a[3], b[1])
+       + mul(a[4], b[0]);
 
     /* [d 0 0 0 0 t9 0 0 0 0 c t3 t2 t1 t0] = [p13 p12 p11 p10 p9 0 0 0 0 p4 p3 p2 p1 p0] */
-    d += (uint64_t)a[5] * b[9]
-       + (uint64_t)a[6] * b[8]
-       + (uint64_t)a[7] * b[7]
-       + (uint64_t)a[8] * b[6]
-       + (uint64_t)a[9] * b[5];
+    d += mul(a[5], b[9])
+       + mul(a[6], b[8])
+       + mul(a[7], b[7])
+       + mul(a[8], b[6])
+       + mul(a[9], b[5]);
 
     /* [d 0 0 0 0 t9 0 0 0 0 c t3 t2 t1 t0] = [p14 p13 p12 p11 p10 p9 0 0 0 0 p4 p3 p2 p1 p0] */
     u4 = d & M; d >>= 26; c += u4 * R0;
@@ -162,18 +175,18 @@ void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t *a, const uint32_t * b) 
     /* [d u4 0 0 0 0 t9 0 0 0 c-u4*R1 t4-u4*R0 t3 t2 t1 t0] = [p14 p13 p12 p11 p10 p9 0 0 0 0 p4 p3 p2 p1 p0] */
     /* [d 0 0 0 0 0 t9 0 0 0 c t4 t3 t2 t1 t0] = [p14 p13 p12 p11 p10 p9 0 0 0 0 p4 p3 p2 p1 p0] */
 
-    c += (uint64_t)a[0] * b[5]
-       + (uint64_t)a[1] * b[4]
-       + (uint64_t)a[2] * b[3]
-       + (uint64_t)a[3] * b[2]
-       + (uint64_t)a[4] * b[1]
-       + (uint64_t)a[5] * b[0];
+    c += mul(a[0], b[5])
+       + mul(a[1], b[4])
+       + mul(a[2], b[3])
+       + mul(a[3], b[2])
+       + mul(a[4], b[1])
+       + mul(a[5], b[0]);
 
     /* [d 0 0 0 0 0 t9 0 0 0 c t4 t3 t2 t1 t0] = [p14 p13 p12 p11 p10 p9 0 0 0 p5 p4 p3 p2 p1 p0] */
-    d += (uint64_t)a[6] * b[9]
-       + (uint64_t)a[7] * b[8]
-       + (uint64_t)a[8] * b[7]
-       + (uint64_t)a[9] * b[6];
+    d += mul(a[6], b[9])
+       + mul(a[7], b[8])
+       + mul(a[8], b[7])
+       + mul(a[9], b[6]);
 
     /* [d 0 0 0 0 0 t9 0 0 0 c t4 t3 t2 t1 t0] = [p15 p14 p13 p12 p11 p10 p9 0 0 0 p5 p4 p3 p2 p1 p0] */
     u5 = d & M; d >>= 26; c += u5 * R0;
@@ -185,18 +198,18 @@ void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t *a, const uint32_t * b) 
     /* [d u5 0 0 0 0 0 t9 0 0 c-u5*R1 t5-u5*R0 t4 t3 t2 t1 t0] = [p15 p14 p13 p12 p11 p10 p9 0 0 0 p5 p4 p3 p2 p1 p0] */
     /* [d 0 0 0 0 0 0 t9 0 0 c t5 t4 t3 t2 t1 t0] = [p15 p14 p13 p12 p11 p10 p9 0 0 0 p5 p4 p3 p2 p1 p0] */
 
-    c += (uint64_t)a[0] * b[6]
-       + (uint64_t)a[1] * b[5]
-       + (uint64_t)a[2] * b[4]
-       + (uint64_t)a[3] * b[3]
-       + (uint64_t)a[4] * b[2]
-       + (uint64_t)a[5] * b[1]
-       + (uint64_t)a[6] * b[0];
+    c += mul(a[0], b[6])
+       + mul(a[1], b[5])
+       + mul(a[2], b[4])
+       + mul(a[3], b[3])
+       + mul(a[4], b[2])
+       + mul(a[5], b[1])
+       + mul(a[6], b[0]);
 
     /* [d 0 0 0 0 0 0 t9 0 0 c t5 t4 t3 t2 t1 t0] = [p15 p14 p13 p12 p11 p10 p9 0 0 p6 p5 p4 p3 p2 p1 p0] */
-    d += (uint64_t)a[7] * b[9]
-       + (uint64_t)a[8] * b[8]
-       + (uint64_t)a[9] * b[7];
+    d += mul(a[7], b[9])
+       + mul(a[8], b[8])
+       + mul(a[9], b[7]);
 
     /* [d 0 0 0 0 0 0 t9 0 0 c t5 t4 t3 t2 t1 t0] = [p16 p15 p14 p13 p12 p11 p10 p9 0 0 p6 p5 p4 p3 p2 p1 p0] */
     u6 = d & M; d >>= 26; c += u6 * R0;
@@ -208,19 +221,19 @@ void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t *a, const uint32_t * b) 
     /* [d u6 0 0 0 0 0 0 t9 0 c-u6*R1 t6-u6*R0 t5 t4 t3 t2 t1 t0] = [p16 p15 p14 p13 p12 p11 p10 p9 0 0 p6 p5 p4 p3 p2 p1 p0] */
     /* [d 0 0 0 0 0 0 0 t9 0 c t6 t5 t4 t3 t2 t1 t0] = [p16 p15 p14 p13 p12 p11 p10 p9 0 0 p6 p5 p4 p3 p2 p1 p0] */
 
-    c += (uint64_t)a[0] * b[7]
-       + (uint64_t)a[1] * b[6]
-       + (uint64_t)a[2] * b[5]
-       + (uint64_t)a[3] * b[4]
-       + (uint64_t)a[4] * b[3]
-       + (uint64_t)a[5] * b[2]
-       + (uint64_t)a[6] * b[1]
-       + (uint64_t)a[7] * b[0];
+    c += mul(a[0], b[7])
+       + mul(a[1], b[6])
+       + mul(a[2], b[5])
+       + mul(a[3], b[4])
+       + mul(a[4], b[3])
+       + mul(a[5], b[2])
+       + mul(a[6], b[1])
+       + mul(a[7], b[0]);
     /* VERIFY_BITS(c, 64); */
 
     /* [d 0 0 0 0 0 0 0 t9 0 c t6 t5 t4 t3 t2 t1 t0] = [p16 p15 p14 p13 p12 p11 p10 p9 0 p7 p6 p5 p4 p3 p2 p1 p0] */
-    d += (uint64_t)a[8] * b[9]
-       + (uint64_t)a[9] * b[8];
+    d += mul(a[8], b[9])
+       + mul(a[9], b[8]);
 
     /* [d 0 0 0 0 0 0 0 t9 0 c t6 t5 t4 t3 t2 t1 t0] = [p17 p16 p15 p14 p13 p12 p11 p10 p9 0 p7 p6 p5 p4 p3 p2 p1 p0] */
     u7 = d & M; d >>= 26; c += u7 * R0;
@@ -228,19 +241,19 @@ void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t *a, const uint32_t * b) 
     t7 = c & M; c >>= 26; c += u7 * R1;
 
 
-    c += (uint64_t)a[0] * b[8]
-       + (uint64_t)a[1] * b[7]
-       + (uint64_t)a[2] * b[6]
-       + (uint64_t)a[3] * b[5]
-       + (uint64_t)a[4] * b[4]
-       + (uint64_t)a[5] * b[3]
-       + (uint64_t)a[6] * b[2]
-       + (uint64_t)a[7] * b[1]
-       + (uint64_t)a[8] * b[0];
+    c += mul(a[0], b[8])
+       + mul(a[1], b[7])
+       + mul(a[2], b[6])
+       + mul(a[3], b[5])
+       + mul(a[4], b[4])
+       + mul(a[5], b[3])
+       + mul(a[6], b[2])
+       + mul(a[7], b[1])
+       + mul(a[8], b[0]);
     /* VERIFY_BITS(c, 64); */
 
     /* [d 0 0 0 0 0 0 0 0 t9 c t7 t6 t5 t4 t3 t2 t1 t0] = [p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
-    d += (uint64_t)a[9] * b[9];
+    d += mul(a[9], b[9]);
 
     /* [d 0 0 0 0 0 0 0 0 t9 c t7 t6 t5 t4 t3 t2 t1 t0] = [p18 p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
     u8 = d & M; d >>= 26; c += u8 * R0;

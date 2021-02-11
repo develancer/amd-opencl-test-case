@@ -52,10 +52,10 @@ instead.
 
 Why?
 ----
-It seems that AMD OpenCL compiler generates invalid code for multiplying 64-bit integers,
-which results in the upper part of the result being truncated.
+It seems that AMD OpenCL compiler does not correctly handle overflow when
+multiplying 32-bit integers cast to 64-bit. It results in the upper part of the result being truncated.
 
-The “fixed” version, with all 64-bit multiplications replaced with a custom function
+The “fixed” version, with all 32-to-64-bit multiplications replaced with a custom function
 ```C
 ulong mul(uint x, uint y) {
   const uint xH = x >> 16, xL = x & 0xFFFFu;

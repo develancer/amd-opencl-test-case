@@ -31,43 +31,34 @@ How to run?
 -----------
 
 ```
-USAGE: ./weird platform device [ seed ]
+USAGE: ./weird platform device [ compiler_flags ]
 ```
 so, for example, if GPU card is device #1 on platform #1:
 ```
 ./weird 1 1
 ```
 
-Seed is optional — if not given, defaults to 42.
-
-The correct computation result for the default seed value is
+The correct computation result is
 ```
-8c7b0713bd8315dcb8304433f3df42867af832b3229b3450fd2559ca8e36ee23 42
+bbde464b6355ee6de6deba5ae860f8a66524937eee81dde224a0214efd795d09
 ```
 but the 5700 XT produces
 ```
-6c117d8e1ae859eb0a6ce04158276dc2827da9197a4d9c937de1707593252e12 42
+77262ca4b90e3fcb55f32ba92841024688802f53e75b16196c399de799377ba7
 ```
 instead.
+
+Running the kernel with no optimizations does not help,
+it still produces incorrect results (different, though):
+```
+./weird 1 1 -cl-opt-disable
+b155da6459a3e7f864a7c1217e83f35dadb2f74d2bd1afdb22901fbec1a10f53
+```
 
 Why?
 ----
 It seems that AMD OpenCL compiler does not correctly handle overflow when
 multiplying 32-bit integers cast to 64-bit. It results in the upper part of the result being truncated.
+There may be some other issues as well.
 
-The “fixed” version, with all 32-to-64-bit multiplications replaced with a custom function
-```C
-ulong mul(uint x, uint y) {
-  const uint xH = x >> 16, xL = x & 0xFFFFu;
-  const uint yH = y >> 16, yL = y & 0xFFFFu;
-
-  ulong z = xH * yH;
-  z <<= 16;
-  z += xH * yL;
-  z += xL * yH;
-  z <<= 16;
-  z += xL * yL;
-  return z;
-}
-```
-is on a branch named `fix`, and gives correct results. Sooo much slower, though.
+The previous version of this bug report is on the branch `previous`.

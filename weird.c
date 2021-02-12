@@ -56,12 +56,12 @@ cl_mem input_buffer;
 cl_mem output_buffer;
 
 int main(int argc, char **argv) {
-    if (argc < 3) {
-        errx(EXIT_FAILURE, "USAGE: %s platform device [ seed ]", argv[0]);
+    if (argc < 3 || argc > 4) {
+        errx(EXIT_FAILURE, "USAGE: %s platform device [ compiler_flags ]", argv[0]);
     }
     const int platform_index = atoi(argv[1]);
     const int device_index = atoi(argv[2]);
-    const int seed = (argc > 3) ? atoi(argv[3]) : 42;
+    const char* compiler_flags = argv[3];
 
     // 1. Get a platform.
     cl_platform_id platforms[4];
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
         errx(EXIT_FAILURE, "create_program failed");
     }
 
-    int err = clBuildProgram(program, 1, &device, NULL, NULL, NULL);
+    int err = clBuildProgram(program, 1, &device, compiler_flags, NULL, NULL);
     if (err) {
         // Determine the size of the log
         size_t log_size;
@@ -113,7 +113,6 @@ int main(int argc, char **argv) {
         errx(EXIT_FAILURE, "clCreateKernel failed");
     }
 
-    unsigned input = seed;
     unsigned char output[32];
     output_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof output, NULL, NULL);
 
@@ -121,8 +120,7 @@ int main(int argc, char **argv) {
     size_t global_work_size = 32;
     size_t local_work_size = 32;
 
-    PROC(clSetKernelArg, kernel, 0, sizeof input, &input);
-    PROC(clSetKernelArg, kernel, 1, sizeof output_buffer, &output_buffer);
+    PROC(clSetKernelArg, kernel, 0, sizeof output_buffer, &output_buffer);
     PROC(clFinish, queue);
 
     PROC(clEnqueueNDRangeKernel, queue, kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
@@ -134,5 +132,5 @@ int main(int argc, char **argv) {
     for (int i = 0; i < 32; ++i) {
         printf("%02x", output[i]);
     }
-    printf(" %d\n", input);
+    putchar('\n');
 }
